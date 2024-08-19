@@ -1,98 +1,13 @@
-/**
- * @type {HTMLCanvasElement}  -
- */
-const canvas = document.getElementById('game')
-const WIDTH = (canvas.width = 1280)
-const HEIGHT = (canvas.height = 720)
-/**
- * @type {CanvasRenderingContext2D}  -
- */
-const ctx = canvas.getContext('2d')
-class Player {
-  img = new Image()
-
-  x = 0
-  isLoaded = false
-  speed = 0.1
-  config = {
-    idle: {
-      x: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-      y: [3],
-      fps: 11,
-      loop: true,
-    },
-    walk: {
-      x: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      y: [5],
-      fps: 12,
-      loop: true,
-    },
-  }
-  size = {
-    x: 32,
-    y: 32,
-  }
-  curFrame = 0
-  curMinX = 0
-  curMaxX = Infinity
-  curRow = 0
-  currentAnimation = 'idle'
-  animationInterval = 1000 / this.config[this.currentAnimation].fps
-  animationTimer = 0
-  isWalking = false
-  constructor() {
-    this.img.src = './res/1.png'
-    this.img.onload = () => {
-      this.isLoaded = true
-      document.addEventListener('click', () => {
-        this.isWalking = true
-        this.currentAnimation = 'walk'
-      })
-    }
-  }
-  update(dt) {
-    this.animation(dt)
-    if (this.isWalking) {
-      this.x += this.speed * dt
-    }
-  }
-  /**
-   * @param {CanvasRenderingContext2D} ctx
-   */
-  render(ctx) {
-    if (!this.isLoaded) {
-      return
-    }
-    ctx.clearRect(0, 0, WIDTH, HEIGHT)
-    ctx.drawImage(
-      this.img,
-      this.curFrame * this.size.x,
-      this.curRow * this.size.y,
-      this.size.x,
-      this.size.y,
-      this.x,
-      0,
-      this.size.x * 3,
-      this.size.y * 3
-    )
-  }
-  animation(dt) {
-    if (this.curFrame === this.curMaxX && !this.config[this.currentAnimation].loop) {
-      this.curFrame = this.curMaxX
-      return
-    }
-    this.animationTimer += dt
-    if (this.animationTimer >= this.animationInterval) {
-      const temp = this.config[this.currentAnimation]
-      this.curMinX = temp.x[0]
-      this.curMaxX = temp.x[temp.x.length - 1]
-      this.curRow = temp.y[0]
-      this.curFrame = Math.max((this.curFrame + 1) % (this.curMaxX + 1), this.curMinX)
-      this.animationInterval = 1000 / temp.fps
-      this.animationTimer = 0
-    }
-  }
-}
+import Background from './src/Background.js'
+import { GAME_WIDTH, GAME_HEIGHT } from './src/common/const.js'
+import { EventEnum } from './src/common/enum.js'
+import { getCanvasAndCtx } from './src/common/utils.js'
+import EventManager from './src/Global/EventManager.js'
+import { Player } from './src/Player.js'
+import spriteAnimationManager from './src/Sprite/SpriteAnimationManager.js'
+import spriteManager from './src/Sprite/SpriteManage.js'
+import Vector2 from './src/Vector/Vector2.js'
+const { canvas, ctx } = getCanvasAndCtx()
 
 class Game {
   /**
@@ -100,15 +15,38 @@ class Game {
    */
   player
   constructor() {
-    this.player = new Player()
+    this.player = new Player({})
+    EventManager.on(EventEnum.GameEnd, this.gameEnd, this)
+    for (let i = 0; i < 20; i++) {
+      for (let j = 0; j < 11; j++) {
+        new Background({
+          src: './res/background/5.png',
+          position: new Vector2(i * Background.SIZE.x, j * Background.SIZE.y),
+        })
+      }
+    }
+    for (let i = 0; i < 20; i++) {
+      new Background({
+        src: './res/background/1.png',
+        position: new Vector2(i * Background.SIZE.x, GAME_HEIGHT - Background.SIZE.y),
+      })
+    }
+  }
+  gameEnd(...data) {
+    console.log(data)
+    // alert(`游戏结束`)
   }
   update(dt) {
     this.player.update(dt)
+    spriteManager.update(dt)
+    spriteAnimationManager.update(dt)
   }
   /**
    * @param {CanvasRenderingContext2D} ctx
    */
   render(ctx) {
+    spriteManager.render(ctx)
+    spriteAnimationManager.render(ctx)
     this.player.render(ctx)
   }
 }
@@ -116,6 +54,7 @@ let dt = 16
 let lastTime = 0
 const game = new Game()
 function renderLoop(time = 0) {
+  ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
   dt = time - lastTime
   game.update(dt)
   game.render(ctx)
