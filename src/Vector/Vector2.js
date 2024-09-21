@@ -18,6 +18,7 @@ export default class Vector2 {
   add(v) {
     this.x += v.x
     this.y += v.y
+    return this
   }
   distance(v) {
     return Math.sqrt((this.x - v.x) ** 2 + (this.y - v.y) ** 2)

@@ -31,6 +31,8 @@ export default class SpriteAnimation {
   animationInterval
   animationTimer = 0
   isAnimationChanged = false
+  isFlipX = false
+  isFlipY = false
   constructor({ src = './res/player/1.png', config, autoAddManger = true }) {
     this.img = new Img(src)
     this.config = config
@@ -46,17 +48,22 @@ export default class SpriteAnimation {
    * @param {CanvasRenderingContext2D} ctx
    */
   render(ctx) {
+    ctx.save()
+    var modifierX = this.isFlipX ? -1 : 1
+    var modifierY = this.isFlipY ? -1 : 1
+    ctx.scale(modifierX, modifierY)
     ctx.drawImage(
       this.img.img,
       this.curFrame * this.size.x,
       this.curRow * this.size.y,
       this.size.x,
       this.size.y,
-      this.position.x,
-      this.position.y,
-      this.size.x * this.scale.x,
-      this.size.y * this.scale.y
+      this.position.x * modifierX,
+      this.position.y * modifierY,
+      this.size.x * this.scale.x * modifierX,
+      this.size.y * this.scale.y * modifierY
     )
+    ctx.restore()
   }
 
   animation(dt) {
@@ -68,9 +75,9 @@ export default class SpriteAnimation {
       this.curFrame = this.curMaxX
       return
     }
-    this.isAnimationChanged = false
     this.animationTimer += dt
     if (this.animationTimer >= this.animationInterval) {
+      this.isAnimationChanged = false //明天讲解点,要等下一个动画播放了至少一帧后才可以重置这个变量
       const temp = this.config[this.currentAnimation]
       this.curMinX = temp.x[0]
       this.curMaxX = temp.x[temp.x.length - 1]
@@ -79,6 +86,12 @@ export default class SpriteAnimation {
       this.animationInterval = 1000 / temp.fps
       this.animationTimer = 0
     }
+  }
+  flipX(isFlipX) {
+    this.isFlipX = isFlipX
+  }
+  flipY(isFlipY) {
+    this.isFlipY = isFlipY
   }
   imgIsLoaded() {
     return this.img.isLoaded
@@ -91,9 +104,11 @@ export default class SpriteAnimation {
     this.position.y = position.y
   }
   changeAnimation(name) {
-    if (this.currentAnimation !== name) {
-      this.currentAnimation = name
-      this.isAnimationChanged = true
+    if (name === this.currentAnimation) {
+      return
     }
+    //明天讲解点,切换时机问题
+    this.currentAnimation = name
+    this.isAnimationChanged = true
   }
 }
